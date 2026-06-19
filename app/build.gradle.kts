@@ -69,4 +69,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.wear.input)
     implementation(libs.androidx.compose.material.icons.extended)
+
+    testImplementation(libs.junit)
 }
