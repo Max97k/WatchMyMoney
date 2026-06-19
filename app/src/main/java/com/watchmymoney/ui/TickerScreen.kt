@@ -32,16 +32,24 @@ fun TickerScreen(
     annualSalary: Double,
     currencySymbol: String,
     resetHour: Int,
+    workHourStart: Int,
+    workHourEnd: Int,
     onEditClick: () -> Unit
 ) {
     var earnedAmount by remember { mutableStateOf(0.0) }
 
     // 60Hz Animation Loop
-    LaunchedEffect(annualSalary, resetHour) {
+    LaunchedEffect(annualSalary, resetHour, workHourStart, workHourEnd) {
         while (true) {
             withFrameMillis { frameTimeMillis ->
                 val now = System.currentTimeMillis()
-                val result = SalaryCalculator.calculate(annualSalary, now, resetHour)
+                val result = SalaryCalculator.calculate(
+                    annualSalary = annualSalary, 
+                    currentTimeMs = now, 
+                    resetHour = resetHour,
+                    workHourStart = workHourStart,
+                    workHourEnd = workHourEnd
+                )
                 earnedAmount = result.earnedToday
             }
         }

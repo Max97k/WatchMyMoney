@@ -21,9 +21,17 @@ object SalaryCalculator {
      * @param annualSalary The user's annual salary.
      * @param currentTimeMs Current timestamp in milliseconds.
      * @param resetHour The hour of the day when the counter resets (0-23). Default is 0 (midnight).
+     * @param workHourStart The start of working hours (0-23). Default is 9 (9 AM).
+     * @param workHourEnd The end of working hours (0-23). Default is 18 (6 PM).
      */
-    fun calculate(annualSalary: Double, currentTimeMs: Long, resetHour: Int = 0): Result {
-        if (annualSalary <= 0) {
+    fun calculate(
+        annualSalary: Double, 
+        currentTimeMs: Long, 
+        resetHour: Int = 0,
+        workHourStart: Int = 9,
+        workHourEnd: Int = 18
+    ): Result {
+        if (annualSalary <= 0 || workHourStart >= workHourEnd) {
             return Result(0.0, 0f)
         }
 
@@ -44,12 +52,17 @@ object SalaryCalculator {
             startOfDay -= MS_PER_DAY
         }
 
-        val msElapsed = currentTimeMs - startOfDay
-        
-        // Clamp elapsed time to 0..MS_PER_DAY (handle potential DST shifts or slight drifts safely)
-        val safeMsElapsed = msElapsed.coerceIn(0, MS_PER_DAY)
+        // Calculate work start and end timestamps based on startOfDay
+        val workStartMs = startOfDay + (workHourStart - resetHour) * 3600_000L
+        val workEndMs = startOfDay + (workHourEnd - resetHour) * 3600_000L
 
-        val fractionOfDay = safeMsElapsed.toDouble() / MS_PER_DAY
+        // Clamp current time to within the working hours
+        val currentWorkTimeMs = currentTimeMs.coerceIn(workStartMs, workEndMs)
+        val totalWorkDurationMs = workEndMs - workStartMs
+        
+        val msElapsed = currentWorkTimeMs - workStartMs
+        
+        val fractionOfDay = msElapsed.toDouble() / totalWorkDurationMs
         val earned = dailySalary * fractionOfDay
 
         return Result(
