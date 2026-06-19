@@ -47,8 +47,6 @@ fun MainScreen() {
             annualSalary = config.annualSalary,
             currencySymbol = config.currencySymbol,
             resetHour = config.resetHour,
-            workHourStart = config.workHourStart,
-            workHourEnd = config.workHourEnd,
             onEditClick = {
                 scope.launch {
                     // Resetting salary to 0 will trigger the OnboardingScreen

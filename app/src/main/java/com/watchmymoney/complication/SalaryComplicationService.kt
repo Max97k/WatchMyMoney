@@ -22,13 +22,7 @@ class SalaryComplicationService : SuspendingComplicationDataSourceService() {
         val config = repository.userConfig.first()
         
         val now = System.currentTimeMillis()
-        val result = SalaryCalculator.calculate(
-            annualSalary = config.annualSalary, 
-            currentTimeMs = now, 
-            resetHour = config.resetHour,
-            workHourStart = config.workHourStart,
-            workHourEnd = config.workHourEnd
-        )
+        val result = SalaryCalculator.calculate(config.annualSalary, now, config.resetHour)
         
         val earnedText = "${config.currencySymbol}${String.format("%.0f", result.earnedToday)}"
         val contentDescription = PlainComplicationText.Builder("Earned today: $earnedText").build()

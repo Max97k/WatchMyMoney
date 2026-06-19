@@ -16,9 +16,7 @@ val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "se
 data class UserConfig(
     val annualSalary: Double = 0.0,
     val currencySymbol: String = "$",
-    val resetHour: Int = 0,
-    val workHourStart: Int = 9,
-    val workHourEnd: Int = 18
+    val resetHour: Int = 0
 )
 
 class SalaryRepository(private val context: Context) {
@@ -27,8 +25,6 @@ class SalaryRepository(private val context: Context) {
         val ANNUAL_SALARY = doublePreferencesKey("annual_salary")
         val CURRENCY_SYMBOL = stringPreferencesKey("currency_symbol")
         val RESET_HOUR = intPreferencesKey("reset_hour")
-        val WORK_HOUR_START = intPreferencesKey("work_hour_start")
-        val WORK_HOUR_END = intPreferencesKey("work_hour_end")
     }
 
     val userConfig: Flow<UserConfig> = context.dataStore.data
@@ -36,9 +32,7 @@ class SalaryRepository(private val context: Context) {
             UserConfig(
                 annualSalary = preferences[Keys.ANNUAL_SALARY] ?: 0.0,
                 currencySymbol = preferences[Keys.CURRENCY_SYMBOL] ?: "$",
-                resetHour = preferences[Keys.RESET_HOUR] ?: 0,
-                workHourStart = preferences[Keys.WORK_HOUR_START] ?: 9,
-                workHourEnd = preferences[Keys.WORK_HOUR_END] ?: 18
+                resetHour = preferences[Keys.RESET_HOUR] ?: 0
             )
         }
 
@@ -57,13 +51,6 @@ class SalaryRepository(private val context: Context) {
     suspend fun updateResetHour(hour: Int) {
         context.dataStore.edit { settings ->
             settings[Keys.RESET_HOUR] = hour
-        }
-    }
-
-    suspend fun updateWorkHours(start: Int, end: Int) {
-        context.dataStore.edit { settings ->
-            settings[Keys.WORK_HOUR_START] = start
-            settings[Keys.WORK_HOUR_END] = end
         }
     }
 }
