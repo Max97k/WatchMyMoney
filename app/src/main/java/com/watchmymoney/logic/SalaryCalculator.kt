@@ -15,6 +15,12 @@ object SalaryCalculator {
         val progress: Float // 0.0 to 1.0
     )
 
+    private val threadLocalCalendar = object : ThreadLocal<Calendar>() {
+        override fun initialValue(): Calendar {
+            return Calendar.getInstance()
+        }
+    }
+
     /**
      * Calculates the earned amount and progress for the current day.
      *
@@ -38,7 +44,8 @@ object SalaryCalculator {
         val dailySalary = annualSalary / DAYS_PER_YEAR
         
         // Calculate start of the "day" based on resetHour
-        val calendar = Calendar.getInstance().apply {
+        val calendar = threadLocalCalendar.get()!!
+        calendar.apply {
             timeInMillis = currentTimeMs
             set(Calendar.HOUR_OF_DAY, resetHour)
             set(Calendar.MINUTE, 0)
