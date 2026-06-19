@@ -58,9 +58,16 @@ fun TickerScreen(
         )
         
         // Split integer and decimal for visual styling
-        val parts = String.format("%.6f", earnedAmount).split(".")
-        val integerPart = parts[0]
-        val decimalPart = parts.getOrElse(1) { "00" }
+        val intPart = earnedAmount.toLong()
+        val fraction = kotlin.math.abs(earnedAmount - intPart)
+        var fractionalInt = kotlin.math.round(fraction * 1_000_000).toLong()
+        var finalIntPart = intPart
+        if (fractionalInt >= 1_000_000L) {
+            fractionalInt -= 1_000_000L
+            finalIntPart += if (earnedAmount >= 0) 1L else -1L
+        }
+        val decimalPart = fractionalInt.toString().padStart(6, '0')
+        val integerPart = if (earnedAmount < 0 && finalIntPart == 0L) "-0" else finalIntPart.toString()
 
         Text(
             text = "$currencySymbol$integerPart",
