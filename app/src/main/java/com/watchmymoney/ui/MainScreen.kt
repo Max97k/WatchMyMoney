@@ -5,7 +5,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.wear.compose.material.CircularProgressIndicator
 import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUpdateRequester
 import android.content.ComponentName
 import com.watchmymoney.complication.SalaryComplicationService
@@ -27,7 +32,12 @@ fun MainScreen() {
     }
 
     if (userConfig == null) {
-        // Loading state, maybe show a spinner?
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
         return
     }
 
