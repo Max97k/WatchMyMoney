@@ -1,53 +1,100 @@
-# WatchMyMoney 💸
+<div align="center">
 
-> **Visualize your income in real-time on Wear OS.**
-> A complication that tracks your daily earnings, and an app that makes watching it grow satisfying.
+[Read in English](README.md) | [閱讀繁體中文版](README_zh.md)
 
-![Platform](https://img.shields.io/badge/Platform-Wear%20OS-4285F4?style=flat&logo=android)
-![Language](https://img.shields.io/badge/Language-Kotlin-7F52FF?style=flat&logo=kotlin)
-![License](https://img.shields.io/badge/License-MIT-green)
+<img src="docs/assets/banner.png" alt="WatchMyMoney Banner" width="100%" />
+
+<img src="docs/assets/logo.png" alt="WatchMyMoney Logo" width="120" />
+
+# WatchMyMoney
+
+**Visualize your income in real-time on Wear OS.**
+
+[![Platform](https://img.shields.io/badge/Platform-Wear%20OS-4285F4?style=flat-square&logo=android)](#)
+[![Language](https://img.shields.io/badge/Language-Kotlin-7F52FF?style=flat-square&logo=kotlin)](#)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=flat-square)](#)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue?style=flat-square)](#)
+
+</div>
 
 ---
 
-## 📖 Overview
+## Overview
 
-**WatchMyMoney** is a dual-component application designed for Wear OS 4/5. It consists of a battery-efficient **Complication** for your watch face and a high-performance **Standalone App** for visual gratification.
+**WatchMyMoney** is a dual-component application engineered for Wear OS 4/5. Designed with both performance and power efficiency in mind, it provides users with real-time visibility into their daily earnings.
 
-*   **The Complication**: Subtly tracks your daily accumulated income on your watch face. Updates once per minute to preserve battery.
-*   **The App**: When you tap the complication, the app launches a 60fps, high-precision counter that shows your money growing in real-time down to the decimal.
+The system is composed of two primary experiences:
+1. **The Complication**: A battery-optimized, passive tracker that integrates seamlessly into your watch face. It updates approximately once per minute, minimizing system wakeups while keeping your earnings in sight.
+2. **The App**: An immersive, 60fps high-precision counter. Upon tapping the complication, the app renders your growing income down to the decimal point in real-time, delivering immediate visual gratification.
 
-## ✨ Features
+---
+
+## Key Features
 
 ### ⌚ Smart Complication
-*   **Battery Efficient**: Updates passively (approx. once/min).
-*   **Flexible Layouts**: Supports `SHORT_TEXT` (Circle), `LONG_TEXT` (Wide), and `RANGED_VALUE` (Progress Bar).
-*   **Instant Access**: Tap to launch the full experience.
+- **Battery-Conscious Updates**: Operates passively with low-frequency updates (~1/min) to preserve battery life.
+- **Flexible Data Sources**: Seamlessly adapts to various watch face slots, supporting `SHORT_TEXT` (Circular), `LONG_TEXT` (Wide), and `RANGED_VALUE` (Progress Bars).
+- **Deep Integration**: Tap the complication directly from the watch face to launch the full real-time tracker.
 
-### 🚀 Visual Gratification App
-*   **60Hz Real-Time Rendering**: Smooth, high-precision animation.
-*   **Decimal Precision**: Watch fractions of a cent accumulate (e.g., `$120.5439`).
-*   **Smart Lifecycle**: Animation freezes immediately when you lower your wrist to save power.
+### 🚀 High-Performance App
+- **60Hz Real-Time Rendering**: Delivers fluid, high-precision animation.
+- **Micro-transaction Precision**: Tracks earnings continuously down to fractions of a cent (e.g., `$120.5439`).
+- **Context-Aware Lifecycle**: Intelligently halts rendering and calculations the moment the wrist is lowered or the screen turns off, maximizing power efficiency.
 
-### ⚙️ User Friendly
-*   **Easy Setup**: On-watch number pad for easy salary input.
-*   **Customizable**: Set your annual salary, currency symbol, and daily reset time.
+### ⚙️ User-Centric Design
+- **Frictionless Onboarding**: Features an optimized on-watch number pad for effortless salary input—no companion app required.
+- **Customizable Metrics**: Allows users to input their annual salary, set localized currency symbols, and customize daily reset intervals.
 
 ---
 
-## 🛠️ Technical Architecture
+## Architecture
 
-This project is built with modern Android development standards for Wear OS.
+This project strictly adheres to modern Android development standards for Wear OS.
 
-| Component | Tech Stack |
+### Tech Stack
+
+| Component | Technology |
 | :--- | :--- |
 | **Language** | 100% Kotlin |
 | **UI Framework** | Jetpack Compose for Wear OS |
 | **Complication API** | `androidx.wear.watchface:watchface-complications-data-source-ktx` |
-| **Data Storage** | Jetpack DataStore (Preferences) |
-| **Architecture** | MVVM (Model-View-ViewModel) |
+| **Data Persistence** | Jetpack DataStore (Preferences) |
+| **Architecture Pattern** | MVVM (Model-View-ViewModel) |
 
-### Core Logic
-The app calculates earnings based on the current time elapsed since midnight.
+### System Design & Data Flow
+
+```mermaid
+graph TD
+    subgraph Data Layer
+        DS[(Jetpack DataStore)]
+    end
+    
+    subgraph Watch Face System
+        CS[ComplicationService]
+        WF((Watch Face))
+    end
+    
+    subgraph Application
+        VM[ViewModel]
+        UI[Jetpack Compose UI]
+        Loop[60Hz Render Loop]
+    end
+    
+    DS -->|Persists Salary & Currency| CS
+    DS -->|Persists Salary & Currency| VM
+    
+    CS -->|Calculates ~1/min| WF
+    
+    VM -->|Initializes| Loop
+    Loop -->|Continuous Calculation| UI
+    
+    WF -.->|Tap Action| UI
+```
+
+### Core Logic Implementation
+
+The calculation engine is entirely local, ensuring privacy and offline functionality. Earnings are derived continuously based on elapsed time:
 
 ```kotlin
 // Daily Salary = Annual Salary / 365.25
@@ -56,33 +103,45 @@ val msPassedToday = System.currentTimeMillis() - midnightTimestamp
 val earned = msPassedToday * ratePerMillisecond
 ```
 
-### Data Flow
-1.  **DataStore**: Persists `salary` and `currency` settings.
-2.  **ComplicationService**: Reads DataStore → Calculates value → Pushes update to Watch Face.
-3.  **MainActivity**: Reads DataStore → Runs 60Hz Loop → Renders UI.
-
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
-*   Android Studio Koala or newer.
-*   Android SDK API 33+ (Wear OS 4).
+
+- **IDE**: Android Studio Koala (or newer)
+- **SDK**: Android SDK API 33+ (Wear OS 4)
+- **Hardware/Emulator**: A physical Wear OS device or an API 33+ Wear OS emulator.
 
 ### Installation
-1.  Clone the repository.
-2.  Open in Android Studio.
-3.  Select the `wear` configuration.
-4.  Run on a Wear OS emulator or physical device.
 
-### Configuration
-1.  Launch the app or add the complication to your watch face.
-2.  If no salary is set, the setup screen will appear automatically.
-3.  Enter your **Annual Salary**.
-4.  Enjoy watching your money grow!
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/your-org/WatchMyMoney.git
+   cd WatchMyMoney
+   ```
+2. **Open in Android Studio:** Open the project folder. Gradle sync should start automatically.
+3. **Build Target:** Select the `wear` run configuration from the dropdown.
+4. **Deploy:** Click Run (Shift+F10) to deploy to your connected watch or emulator.
 
 ---
 
-## 📄 License
+## Usage
+
+1. **Initial Setup:** Launch the app from the launcher or add the complication to your watch face.
+2. **Configuration:** If no salary data is detected, the setup screen will automatically appear. Enter your **Annual Salary** using the on-screen keypad.
+3. **Tracking:** Your complication will instantly begin tracking your daily earnings. Tap it anytime to watch your money grow in real-time.
+
+---
+
+## Contributing
+
+We welcome contributions! Whether you're fixing a bug, improving the documentation, or proposing new features, your help is appreciated.
+
+Please see our [CONTRIBUTING.md](CONTRIBUTING.md) file for detailed instructions on how to submit pull requests, our coding standards, and our code of conduct.
+
+---
+
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
