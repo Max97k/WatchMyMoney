@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.watchmymoney"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.watchmymoney"
         minSdk = 30 // Wear OS 3.0+
-        targetSdk = 34 // Android 14 (Wear OS 5 target)
+        targetSdk = 35 // Android 14 (Wear OS 5 target)
         versionCode = 3
         versionName = "1.1"
         vectorDrawables {
@@ -62,7 +62,7 @@ dependencies {
     // Compose
     implementation(platform("androidx.compose:compose-bom:2024.06.00"))
     implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.wear.compose.material)
+    implementation(libs.androidx.wear.compose.material3)
     implementation(libs.androidx.wear.compose.foundation)
     
     // Complications
@@ -72,6 +72,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
     implementation(libs.androidx.wear.input)
     implementation(libs.androidx.compose.material.icons.extended)
 

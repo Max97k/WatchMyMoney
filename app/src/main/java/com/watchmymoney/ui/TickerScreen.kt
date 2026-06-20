@@ -13,18 +13,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.wear.compose.material.Button
-import androidx.wear.compose.material.ButtonDefaults
-import androidx.wear.compose.material.Icon
-import androidx.wear.compose.material.MaterialTheme
-import androidx.wear.compose.material.Text
+import androidx.wear.compose.material3.Button
+import androidx.wear.compose.material3.ButtonDefaults
+import androidx.wear.compose.material3.Icon
+import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material3.Text
 import com.watchmymoney.logic.SalaryCalculator
+import kotlinx.coroutines.delay
 
 @Composable
 fun TickerScreen(
@@ -35,14 +35,14 @@ fun TickerScreen(
 ) {
     var earnedAmount by remember { mutableStateOf(0.0) }
 
-    // 60Hz Animation Loop
+    // Coroutine Loop with delay for battery optimization
     LaunchedEffect(annualSalary, resetHour) {
         while (true) {
-            withFrameMillis { frameTimeMillis ->
-                val now = System.currentTimeMillis()
-                val result = SalaryCalculator.calculate(annualSalary, now, resetHour)
-                earnedAmount = result.earnedToday
-            }
+            val now = System.currentTimeMillis()
+            val result = SalaryCalculator.calculate(annualSalary, now, resetHour)
+            earnedAmount = result.earnedToday
+            if(earnedAmount < 0) earnedAmount = 0.0
+            delay(1000L) // Update once per second
         }
     }
 
@@ -53,34 +53,33 @@ fun TickerScreen(
     ) {
         Text(
             text = "You earned",
-            style = MaterialTheme.typography.caption1,
-            color = MaterialTheme.colors.secondary
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.secondary
         )
         
-        // Split integer and decimal for visual styling
-        val parts = String.format("%.6f", earnedAmount).split(".")
-        val integerPart = parts[0]
-        val decimalPart = parts.getOrElse(1) { "00" }
+        // Use mathematical operations to avoid expensive String.format in compose loops
+        val integerPart = earnedAmount.toLong()
+        val decimalPart = ((earnedAmount - integerPart) * 1000000).toLong().toString().padStart(6, '0')
 
         Text(
             text = "$currencySymbol$integerPart",
-            style = MaterialTheme.typography.display1.copy(
+            style = MaterialTheme.typography.displayMedium.copy(
                 fontWeight = FontWeight.Bold,
                 fontSize = 40.sp
             ),
-            color = MaterialTheme.colors.primary
+            color = MaterialTheme.colorScheme.primary
         )
         Text(
             text = ".$decimalPart",
-            style = MaterialTheme.typography.title3.copy(
-                color = MaterialTheme.colors.primaryVariant
+            style = MaterialTheme.typography.titleMedium.copy(
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         )
         
         Button(
             onClick = onEditClick,
-            modifier = Modifier.padding(top = 8.dp).size(32.dp),
-            colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.surface)
+            modifier = Modifier.padding(top = 8.dp).size(48.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
         ) {
             Icon(
                 imageVector = Icons.Rounded.Edit,

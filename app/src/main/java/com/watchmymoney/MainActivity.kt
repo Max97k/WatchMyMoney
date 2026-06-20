@@ -9,14 +9,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.wear.compose.material.MaterialTheme
+import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material3.AppScaffold
+import androidx.wear.compose.material3.ScreenScaffold
+import androidx.wear.compose.material3.TimeText
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
-                WatchMyMoneyApp()
+                AppScaffold {
+                    ScreenScaffold(
+                        timeText = { TimeText() }
+                    ) {
+                        WatchMyMoneyApp()
+                    }
+                }
             }
         }
     }

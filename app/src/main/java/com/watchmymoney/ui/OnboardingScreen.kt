@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Backspace
+import androidx.compose.material.icons.automirrored.rounded.Backspace
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -22,11 +22,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.wear.compose.material.Button
-import androidx.wear.compose.material.ButtonDefaults
-import androidx.wear.compose.material.Icon
-import androidx.wear.compose.material.MaterialTheme
-import androidx.wear.compose.material.Text
+import androidx.wear.compose.material3.Button
+import androidx.wear.compose.material3.ButtonDefaults
+import androidx.wear.compose.material3.Icon
+import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material3.Text
 
 @Composable
 fun OnboardingScreen(
@@ -37,7 +37,7 @@ fun OnboardingScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colors.background)
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 14.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -45,8 +45,8 @@ fun OnboardingScreen(
         // Display Area
         Text(
             text = if (inputString.isEmpty()) "Salary?" else "$$inputString",
-            style = MaterialTheme.typography.title2,
-            color = if (inputString.isEmpty()) Color.Gray else MaterialTheme.colors.primary,
+            style = MaterialTheme.typography.titleMedium,
+            color = if (inputString.isEmpty()) Color.Gray else MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center,
             maxLines = 1
         )
@@ -60,7 +60,7 @@ fun OnboardingScreen(
         // 7 8 9
         // ⌫ 0 ✔️
 
-        val buttonSize = 38.dp // Large comfortable touch target
+        val buttonSize = 48.dp // Large comfortable touch target
         val spacing = 4.dp
 
         Row(horizontalArrangement = Arrangement.spacedBy(spacing)) {
@@ -89,10 +89,10 @@ fun OnboardingScreen(
                         inputString = inputString.dropLast(1)
                     }
                 },
-                colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.surface),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 modifier = Modifier.size(buttonSize)
             ) {
-                Icon(Icons.Rounded.Backspace, contentDescription = "Del")
+                Icon(Icons.AutoMirrored.Rounded.Backspace, contentDescription = "Del")
             }
 
             // 0
@@ -108,7 +108,7 @@ fun OnboardingScreen(
                     }
                 },
                 enabled = isValid,
-                colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 modifier = Modifier.size(buttonSize)
             ) {
                 Icon(Icons.Rounded.Check, contentDescription = "Confirm")
@@ -121,9 +121,9 @@ fun OnboardingScreen(
 fun NumButton(text: String, size: androidx.compose.ui.unit.Dp, onClick: () -> Unit) {
     Button(
         onClick = onClick,
-        colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.surface),
+        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         modifier = Modifier.size(size)
     ) {
-        Text(text = text, style = MaterialTheme.typography.button)
+        Text(text = text, style = MaterialTheme.typography.labelLarge)
     }
 }

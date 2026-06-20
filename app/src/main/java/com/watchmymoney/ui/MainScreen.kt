@@ -3,41 +3,25 @@ package com.watchmymoney.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.wear.compose.material.CircularProgressIndicator
-import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUpdateRequester
-import android.content.ComponentName
-import com.watchmymoney.complication.SalaryComplicationService
-import com.watchmymoney.data.SalaryRepository
-import com.watchmymoney.data.dataStore
-import kotlinx.coroutines.launch
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
-fun MainScreen() {
-    val context = LocalContext.current
-    val repository = SalaryRepository(context.dataStore)
-    val userConfig by repository.userConfig.collectAsState(initial = null)
-    val scope = rememberCoroutineScope()
-    
-    val complicationRequester = remember {
-        ComplicationDataSourceUpdateRequester.create(
-            context,
-            ComponentName(context, SalaryComplicationService::class.java)
-        )
-    }
+fun MainScreen(
+    viewModel: MainViewModel = viewModel()
+) {
+    val userConfig by viewModel.userConfig.collectAsState()
 
     if (userConfig == null) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator()
+            // Wait for data to load
+            androidx.wear.compose.material3.CircularProgressIndicator()
         }
         return
     }
@@ -47,10 +31,7 @@ fun MainScreen() {
     if (config.annualSalary <= 0) {
         OnboardingScreen(
             onSalarySet = { newSalary ->
-                scope.launch {
-                    repository.updateAnnualSalary(newSalary)
-                    complicationRequester.requestUpdateAll()
-                }
+                viewModel.updateSalary(newSalary)
             }
         )
     } else {
@@ -59,11 +40,7 @@ fun MainScreen() {
             currencySymbol = config.currencySymbol,
             resetHour = config.resetHour,
             onEditClick = {
-                scope.launch {
-                    // Resetting salary to 0 will trigger the OnboardingScreen
-                    repository.updateAnnualSalary(0.0)
-                    complicationRequester.requestUpdateAll()
-                }
+                viewModel.updateSalary(0.0)
             }
         )
     }
