@@ -12,13 +12,14 @@ import androidx.wear.watchface.complications.datasource.ComplicationRequest
 import androidx.wear.watchface.complications.datasource.SuspendingComplicationDataSourceService
 import com.watchmymoney.MainActivity
 import com.watchmymoney.data.SalaryRepository
+import com.watchmymoney.data.dataStore
 import com.watchmymoney.logic.SalaryCalculator
 import kotlinx.coroutines.flow.first
 
 class SalaryComplicationService : SuspendingComplicationDataSourceService() {
 
     override suspend fun onComplicationRequest(request: ComplicationRequest): ComplicationData? {
-        val repository = SalaryRepository(applicationContext)
+        val repository = SalaryRepository(applicationContext.dataStore)
         val config = repository.userConfig.first()
         
         val now = System.currentTimeMillis()

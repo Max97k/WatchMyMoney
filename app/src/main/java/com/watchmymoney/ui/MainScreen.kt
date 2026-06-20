@@ -15,12 +15,13 @@ import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUp
 import android.content.ComponentName
 import com.watchmymoney.complication.SalaryComplicationService
 import com.watchmymoney.data.SalaryRepository
+import com.watchmymoney.data.dataStore
 import kotlinx.coroutines.launch
 
 @Composable
 fun MainScreen() {
     val context = LocalContext.current
-    val repository = SalaryRepository(context)
+    val repository = SalaryRepository(context.dataStore)
     val userConfig by repository.userConfig.collectAsState(initial = null)
     val scope = rememberCoroutineScope()
     
