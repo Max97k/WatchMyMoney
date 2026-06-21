@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -24,7 +25,6 @@ import androidx.wear.compose.material3.Icon
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
 import com.watchmymoney.logic.SalaryCalculator
-import kotlinx.coroutines.delay
 
 @Composable
 fun TickerScreen(
@@ -35,14 +35,15 @@ fun TickerScreen(
 ) {
     var earnedAmount by remember { mutableStateOf(0.0) }
 
-    // Coroutine Loop with delay for battery optimization
+    // 60Hz Animation Loop for smooth decimal updates
     LaunchedEffect(annualSalary, resetHour) {
         while (true) {
-            val now = System.currentTimeMillis()
-            val result = SalaryCalculator.calculate(annualSalary, now, resetHour)
-            earnedAmount = result.earnedToday
-            if(earnedAmount < 0) earnedAmount = 0.0
-            delay(1000L) // Update once per second
+            withFrameMillis { frameTimeMillis ->
+                val now = System.currentTimeMillis()
+                val result = SalaryCalculator.calculate(annualSalary, now, resetHour)
+                earnedAmount = result.earnedToday
+                if(earnedAmount < 0) earnedAmount = 0.0
+            }
         }
     }
 
