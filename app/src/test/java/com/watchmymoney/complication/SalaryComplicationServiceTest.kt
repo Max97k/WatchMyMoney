@@ -57,6 +57,7 @@ class SalaryComplicationServiceTest {
         context.filesDir.parentFile?.resolve("datastore")?.deleteRecursively()
 
         TimeZone.setDefault(originalTimeZone)
+        com.watchmymoney.logic.TimeProvider.currentTimeMillisProvider = { System.currentTimeMillis() }
     }
 
     @Test
@@ -73,13 +74,14 @@ class SalaryComplicationServiceTest {
             set(Calendar.MILLISECOND, 0)
         }
         SystemClock.setCurrentTimeMillis(calendar.timeInMillis)
+        com.watchmymoney.logic.TimeProvider.currentTimeMillisProvider = { calendar.timeInMillis }
 
         // Request Short Text complication
         val request = ComplicationRequest(101, ComplicationType.SHORT_TEXT, false)
         val data = service.onComplicationRequest(request) as? ShortTextComplicationData
         
         assertNotNull("ComplicationData should not be null", data)
-        val text = data!!.text.getTextAt(context.resources, java.time.Instant.ofEpochMilli(0)).toString()
+        val text = data!!.text.getTextAt(context.resources, java.time.Instant.ofEpochMilli(com.watchmymoney.logic.TimeProvider.currentTimeMillis())).toString()
         assertEquals("$500", text)
     }
 
@@ -97,13 +99,14 @@ class SalaryComplicationServiceTest {
             set(Calendar.MILLISECOND, 0)
         }
         SystemClock.setCurrentTimeMillis(calendar.timeInMillis)
+        com.watchmymoney.logic.TimeProvider.currentTimeMillisProvider = { calendar.timeInMillis }
 
         // Request Long Text complication
         val request = ComplicationRequest(102, ComplicationType.LONG_TEXT, false)
         val data = service.onComplicationRequest(request) as? LongTextComplicationData
         
         assertNotNull("ComplicationData should not be null", data)
-        val text = data!!.text.getTextAt(context.resources, java.time.Instant.ofEpochMilli(0)).toString()
+        val text = data!!.text.getTextAt(context.resources, java.time.Instant.ofEpochMilli(com.watchmymoney.logic.TimeProvider.currentTimeMillis())).toString()
         assertEquals("Today: €250", text)
     }
 
@@ -121,6 +124,7 @@ class SalaryComplicationServiceTest {
             set(Calendar.MILLISECOND, 0)
         }
         SystemClock.setCurrentTimeMillis(calendar.timeInMillis)
+        com.watchmymoney.logic.TimeProvider.currentTimeMillisProvider = { calendar.timeInMillis }
 
         // Request Ranged Value complication
         val request = ComplicationRequest(103, ComplicationType.RANGED_VALUE, false)
@@ -130,7 +134,7 @@ class SalaryComplicationServiceTest {
         assertEquals(0.75f, data!!.value, 1e-4f)
         assertEquals(0f, data.min, 1e-4f)
         assertEquals(1f, data.max, 1e-4f)
-        val text = data.text!!.getTextAt(context.resources, java.time.Instant.ofEpochMilli(0)).toString()
+        val text = data.text!!.getTextAt(context.resources, java.time.Instant.ofEpochMilli(com.watchmymoney.logic.TimeProvider.currentTimeMillis())).toString()
         assertEquals("£750", text)
     }
 
@@ -160,15 +164,16 @@ class SalaryComplicationServiceTest {
         // C-15 equivalent: static preview data validation
         val shortPreview = service.getPreviewData(ComplicationType.SHORT_TEXT) as? ShortTextComplicationData
         assertNotNull(shortPreview)
-        assertEquals("$120.50", shortPreview!!.text.getTextAt(context.resources, java.time.Instant.ofEpochMilli(0)).toString())
+        assertEquals("$120", shortPreview!!.text.getTextAt(context.resources, java.time.Instant.ofEpochMilli(com.watchmymoney.logic.TimeProvider.currentTimeMillis())).toString())
 
         val longPreview = service.getPreviewData(ComplicationType.LONG_TEXT) as? LongTextComplicationData
         assertNotNull(longPreview)
-        assertEquals("Today: $120.50", longPreview!!.text.getTextAt(context.resources, java.time.Instant.ofEpochMilli(0)).toString())
+        assertEquals("Today: $120", longPreview!!.text.getTextAt(context.resources, java.time.Instant.ofEpochMilli(com.watchmymoney.logic.TimeProvider.currentTimeMillis())).toString())
 
         val rangedPreview = service.getPreviewData(ComplicationType.RANGED_VALUE) as? RangedValueComplicationData
         assertNotNull(rangedPreview)
         assertEquals(0.5f, rangedPreview!!.value, 1e-4f)
-        assertEquals("$120.50", rangedPreview.text!!.getTextAt(context.resources, java.time.Instant.ofEpochMilli(0)).toString())
+        assertEquals("$120", rangedPreview.text!!.getTextAt(context.resources, java.time.Instant.ofEpochMilli(com.watchmymoney.logic.TimeProvider.currentTimeMillis())).toString())
     }
 }
+
