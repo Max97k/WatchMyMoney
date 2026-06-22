@@ -1,6 +1,9 @@
 package com.watchmymoney.logic
 
-import java.util.Calendar
+import java.time.Instant
+import java.time.LocalTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 /**
  * Pure logic class for calculating salary earnings.
@@ -14,12 +17,6 @@ object SalaryCalculator {
         val earnedToday: Double,
         val progress: Float // 0.0 to 1.0
     )
-
-    private val threadLocalCalendar = object : ThreadLocal<Calendar>() {
-        override fun initialValue(): Calendar {
-            return Calendar.getInstance()
-        }
-    }
 
     /**
      * Calculates the earned amount and progress for the current day.
@@ -35,21 +32,16 @@ object SalaryCalculator {
 
         val dailySalary = annualSalary / DAYS_PER_YEAR
         
-        // Calculate start of the "day" based on resetHour
-        val calendar = threadLocalCalendar.get()!!
-        calendar.apply {
-            timeInMillis = currentTimeMs
-            set(Calendar.HOUR_OF_DAY, resetHour)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
+        // Calculate start of the "day" based on resetHour using java.time
+        val zoneId = ZoneId.systemDefault()
+        val instant = Instant.ofEpochMilli(currentTimeMs)
+        val zdt = instant.atZone(zoneId)
 
-        // If current time is before the reset time today, then the "day" started yesterday
-        var startOfDay = calendar.timeInMillis
-        if (currentTimeMs < startOfDay) {
-            startOfDay -= MS_PER_DAY
-        }
+        // Determine the logical start date for the current "day"
+        val date = if (zdt.hour >= resetHour) zdt.toLocalDate() else zdt.toLocalDate().minusDays(1)
+        val time = LocalTime.of(resetHour, 0)
+
+        val startOfDay = ZonedDateTime.of(date, time, zoneId).toInstant().toEpochMilli()
 
         val msElapsed = currentTimeMs - startOfDay
         
