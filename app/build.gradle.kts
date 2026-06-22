@@ -70,3 +70,7 @@ dependencies {
     implementation(libs.androidx.wear.input)
     implementation(libs.androidx.compose.material.icons.extended)
 }
+
+dependencies {
+    testImplementation("junit:junit:4.13.2")
+}
