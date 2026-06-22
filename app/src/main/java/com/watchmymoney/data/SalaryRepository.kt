@@ -19,7 +19,7 @@ data class UserConfig(
     val resetHour: Int = 0
 )
 
-class SalaryRepository(private val context: Context) {
+class SalaryRepository(private val dataStore: DataStore<Preferences>) {
 
     private object Keys {
         val ANNUAL_SALARY = doublePreferencesKey("annual_salary")
@@ -27,7 +27,7 @@ class SalaryRepository(private val context: Context) {
         val RESET_HOUR = intPreferencesKey("reset_hour")
     }
 
-    val userConfig: Flow<UserConfig> = context.dataStore.data
+    val userConfig: Flow<UserConfig> = dataStore.data
         .map { preferences ->
             UserConfig(
                 annualSalary = preferences[Keys.ANNUAL_SALARY] ?: 0.0,
@@ -36,21 +36,33 @@ class SalaryRepository(private val context: Context) {
             )
         }
 
-    suspend fun updateAnnualSalary(salary: Double) {
-        context.dataStore.edit { settings ->
-            settings[Keys.ANNUAL_SALARY] = salary
+    suspend fun updateConfig(
+        annualSalary: Double? = null,
+        currencySymbol: String? = null,
+        resetHour: Int? = null
+    ) {
+        dataStore.edit { settings ->
+            if (annualSalary != null) {
+                settings[Keys.ANNUAL_SALARY] = annualSalary
+            }
+            if (currencySymbol != null) {
+                settings[Keys.CURRENCY_SYMBOL] = currencySymbol
+            }
+            if (resetHour != null) {
+                settings[Keys.RESET_HOUR] = resetHour
+            }
         }
     }
 
+    suspend fun updateAnnualSalary(salary: Double) {
+        updateConfig(annualSalary = salary)
+    }
+
     suspend fun updateCurrencySymbol(symbol: String) {
-        context.dataStore.edit { settings ->
-            settings[Keys.CURRENCY_SYMBOL] = symbol
-        }
+        updateConfig(currencySymbol = symbol)
     }
     
     suspend fun updateResetHour(hour: Int) {
-        context.dataStore.edit { settings ->
-            settings[Keys.RESET_HOUR] = hour
-        }
+        updateConfig(resetHour = hour)
     }
 }
