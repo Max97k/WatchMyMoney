@@ -2,8 +2,13 @@ package com.watchmymoney.complication
 
 import android.app.PendingIntent
 import android.content.Intent
+import androidx.annotation.VisibleForTesting
+import androidx.wear.protolayout.expression.DynamicBuilders.DynamicFloat
+import androidx.wear.protolayout.expression.DynamicBuilders.DynamicInstant
+import androidx.wear.protolayout.expression.DynamicBuilders.DynamicString
 import androidx.wear.watchface.complications.data.ComplicationData
 import androidx.wear.watchface.complications.data.ComplicationType
+import androidx.wear.watchface.complications.data.DynamicComplicationText
 import androidx.wear.watchface.complications.data.LongTextComplicationData
 import androidx.wear.watchface.complications.data.PlainComplicationText
 import androidx.wear.watchface.complications.data.RangedValueComplicationData
@@ -11,24 +16,69 @@ import androidx.wear.watchface.complications.data.ShortTextComplicationData
 import androidx.wear.watchface.complications.datasource.ComplicationRequest
 import androidx.wear.watchface.complications.datasource.SuspendingComplicationDataSourceService
 import com.watchmymoney.MainActivity
+import com.watchmymoney.R
 import com.watchmymoney.data.SalaryRepository
 import com.watchmymoney.data.dataStore
 import com.watchmymoney.logic.SalaryCalculator
 import kotlinx.coroutines.flow.first
+import java.time.Clock
+import java.time.Instant
 
 class SalaryComplicationService : SuspendingComplicationDataSourceService() {
+
+    companion object {
+        @VisibleForTesting
+        var testClock: Clock? = null
+    }
 
     override suspend fun onComplicationRequest(request: ComplicationRequest): ComplicationData? {
         val repository = SalaryRepository(applicationContext.dataStore)
         val config = repository.userConfig.first()
         
-        val now = System.currentTimeMillis()
+        val clock = testClock ?: Clock.systemUTC()
+        val now = clock.millis()
+
+        val logicalDay = SalaryCalculator.calculateLogicalDay(now, config.resetHour)
         val result = SalaryCalculator.calculate(config.annualSalary, now, config.resetHour)
         
-        val earnedText = "${config.currencySymbol}${String.format("%.0f", result.earnedToday)}"
-        val contentDescription = PlainComplicationText.Builder("Earned today: $earnedText").build()
+        val staticEarnedVal = result.earnedToday.toLong().toString()
+        val earnedTextStr = "${config.currencySymbol}$staticEarnedVal"
+
+        val startOfLogicalDaySec = DynamicInstant.withSecondsPrecision(logicalDay.startOfLogicalDay)
+
+        // Use test clock if injected to mock dynamic platform time accurately in Robolectric
+        val platformTimeSec = if (testClock != null) {
+            DynamicInstant.withSecondsPrecision(Instant.now(clock))
+        } else {
+            DynamicInstant.platformTimeWithSecondsPrecision()
+        }
+
+        val elapsedSec = startOfLogicalDaySec.durationUntil(platformTimeSec).toIntSeconds()
+
+        val logicalDaySec = logicalDay.logicalDayMs / 1000.0f
+        val dailySalary = (config.annualSalary / SalaryCalculator.DAYS_PER_YEAR).toFloat()
+
+        val progressDynamic = elapsedSec.asFloat().times(DynamicFloat.constant(1.0f / logicalDaySec))
+        val earnedDynamicFloat = elapsedSec.asFloat().times(DynamicFloat.constant(dailySalary / logicalDaySec))
+
+        val floatFormatter = DynamicFloat.FloatFormatter.Builder()
+            .setMaxFractionDigits(0)
+            .setGroupingUsed(false)
+            .build()
+
+        val earnedTextDynamicStr = DynamicString.constant(config.currencySymbol).concat(earnedDynamicFloat.format(floatFormatter))
+        val earnedTextDynamic = DynamicComplicationText(earnedTextDynamicStr, earnedTextStr)
+
+        val shortContentDescFallback = applicationContext.getString(R.string.complication_earned_today, earnedTextStr)
+        val shortContentDescDynamicStr = applicationContext.getString(R.string.complication_earned_today_dynamic)
+        val shortContentDescStr = DynamicString.constant(shortContentDescDynamicStr).concat(earnedTextDynamicStr)
+        val shortContentDesc = DynamicComplicationText(shortContentDescStr, shortContentDescFallback)
+
+        val longTextFallback = applicationContext.getString(R.string.complication_today, earnedTextStr)
+        val longTextDynamicPrefixStr = applicationContext.getString(R.string.complication_today_dynamic)
+        val longTextDynamicStr = DynamicString.constant(longTextDynamicPrefixStr).concat(earnedTextDynamicStr)
+        val longTextDynamic = DynamicComplicationText(longTextDynamicStr, longTextFallback)
         
-        // Create tap action to open the app
         val tapIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
@@ -39,8 +89,8 @@ class SalaryComplicationService : SuspendingComplicationDataSourceService() {
         return when (request.complicationType) {
             ComplicationType.SHORT_TEXT -> {
                 ShortTextComplicationData.Builder(
-                    text = PlainComplicationText.Builder(earnedText).build(),
-                    contentDescription = contentDescription
+                    text = earnedTextDynamic,
+                    contentDescription = shortContentDesc
                 )
                 .setTapAction(tapAction)
                 .build()
@@ -48,8 +98,8 @@ class SalaryComplicationService : SuspendingComplicationDataSourceService() {
             
             ComplicationType.LONG_TEXT -> {
                 LongTextComplicationData.Builder(
-                    text = PlainComplicationText.Builder("Today: $earnedText").build(),
-                    contentDescription = contentDescription
+                    text = longTextDynamic,
+                    contentDescription = shortContentDesc
                 )
                 .setTapAction(tapAction)
                 .build()
@@ -57,12 +107,13 @@ class SalaryComplicationService : SuspendingComplicationDataSourceService() {
             
             ComplicationType.RANGED_VALUE -> {
                 RangedValueComplicationData.Builder(
-                    value = result.progress.coerceIn(0f, 1f),
+                    dynamicValue = progressDynamic,
+                    fallbackValue = result.progress.coerceIn(0f, 1f),
                     min = 0f,
                     max = 1f,
-                    contentDescription = contentDescription
+                    contentDescription = shortContentDesc
                 )
-                .setText(PlainComplicationText.Builder(earnedText).build())
+                .setText(earnedTextDynamic)
                 .setTapAction(tapAction)
                 .build()
             }
@@ -72,8 +123,8 @@ class SalaryComplicationService : SuspendingComplicationDataSourceService() {
     }
 
     override fun getPreviewData(type: ComplicationType): ComplicationData? {
-        val earnedText = "$120.50"
-        val contentDescription = PlainComplicationText.Builder("Preview").build()
+        val earnedText = "$120"
+        val contentDescription = PlainComplicationText.Builder(applicationContext.getString(R.string.complication_preview)).build()
         
         return when (type) {
             ComplicationType.SHORT_TEXT -> ShortTextComplicationData.Builder(
@@ -82,7 +133,7 @@ class SalaryComplicationService : SuspendingComplicationDataSourceService() {
             ).build()
             
             ComplicationType.LONG_TEXT -> LongTextComplicationData.Builder(
-                text = PlainComplicationText.Builder("Today: $earnedText").build(),
+                text = PlainComplicationText.Builder(applicationContext.getString(R.string.complication_today, earnedText)).build(),
                 contentDescription = contentDescription
             ).build()
             

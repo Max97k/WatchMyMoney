@@ -10,12 +10,44 @@ import java.time.ZonedDateTime
  */
 object SalaryCalculator {
 
-    private const val DAYS_PER_YEAR = 365.25
+    const val DAYS_PER_YEAR = 365.25
 
     data class Result(
         val earnedToday: Double,
         val progress: Float // 0.0 to 1.0
     )
+
+    data class LogicalDay(
+        val startOfLogicalDay: Instant,
+        val logicalDayMs: Long
+    )
+
+    fun calculateLogicalDay(
+        currentTimeMs: Long,
+        resetHour: Int = 0,
+        zoneId: ZoneId = ZoneId.systemDefault()
+    ): LogicalDay {
+        val nowInstant = Instant.ofEpochMilli(currentTimeMs)
+        val nowZoned = ZonedDateTime.ofInstant(nowInstant, zoneId)
+
+        // Find candidate reset hour today
+        val candidateToday = nowZoned.toLocalDate().atTime(resetHour, 0).atZone(zoneId)
+
+        // If current time is before the reset time today, then the logical day started yesterday
+        val startOfLogicalDay = if (nowZoned.isBefore(candidateToday)) {
+            nowZoned.toLocalDate().minusDays(1).atTime(resetHour, 0).atZone(zoneId)
+        } else {
+            candidateToday
+        }
+
+        // The end of the logical day is the start of the next logical day
+        val endOfLogicalDay = startOfLogicalDay.plusDays(1)
+
+        // Calculate dynamic duration of the logical day
+        val logicalDayMs = Duration.between(startOfLogicalDay, endOfLogicalDay).toMillis()
+
+        return LogicalDay(startOfLogicalDay.toInstant(), logicalDayMs)
+    }
 
     /**
      * Calculates the earned amount and progress for the current day.
@@ -37,32 +69,17 @@ object SalaryCalculator {
 
         val dailySalary = annualSalary / DAYS_PER_YEAR
 
+        val logicalDay = calculateLogicalDay(currentTimeMs, resetHour, zoneId)
+
         val nowInstant = Instant.ofEpochMilli(currentTimeMs)
-        val nowZoned = ZonedDateTime.ofInstant(nowInstant, zoneId)
-
-        // Find candidate reset hour today
-        val candidateToday = nowZoned.toLocalDate().atTime(resetHour, 0).atZone(zoneId)
-
-        // If current time is before the reset time today, then the logical day started yesterday
-        val startOfLogicalDay = if (nowZoned.isBefore(candidateToday)) {
-            nowZoned.toLocalDate().minusDays(1).atTime(resetHour, 0).atZone(zoneId)
-        } else {
-            candidateToday
-        }
-
-        // The end of the logical day is the start of the next logical day
-        val endOfLogicalDay = startOfLogicalDay.plusDays(1)
-
-        // Calculate dynamic duration of the logical day
-        val logicalDayMs = Duration.between(startOfLogicalDay, endOfLogicalDay).toMillis()
 
         // Calculate how much time has elapsed since the start of the logical day
-        val msElapsed = Duration.between(startOfLogicalDay, nowZoned).toMillis()
+        val msElapsed = Duration.between(logicalDay.startOfLogicalDay, nowInstant).toMillis()
 
         // Clamp elapsed time to 0..logicalDayMs
-        val safeMsElapsed = msElapsed.coerceIn(0, logicalDayMs)
+        val safeMsElapsed = msElapsed.coerceIn(0, logicalDay.logicalDayMs)
 
-        val fractionOfDay = safeMsElapsed.toDouble() / logicalDayMs
+        val fractionOfDay = safeMsElapsed.toDouble() / logicalDay.logicalDayMs
         val earned = dailySalary * fractionOfDay
 
         return Result(
