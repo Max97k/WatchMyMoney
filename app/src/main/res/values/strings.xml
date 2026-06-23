@@ -1,4 +1,9 @@
 <resources>
     <string name="app_name">WatchMyMoney</string>
     <string name="complication_label">Salary</string>
+    <string name="complication_earned_today">Earned today: %1$s</string>
+    <string name="complication_today">Today: %1$s</string>
+    <string name="complication_preview">Preview</string>
+    <string name="complication_earned_today_dynamic">Earned today: </string>
+    <string name="complication_today_dynamic">Today: </string>
 </resources>
