@@ -86,13 +86,13 @@ fun TickerScreen(
         
         Button(
             onClick = onEditClick,
-            modifier = Modifier.padding(top = 8.dp).size(32.dp),
+            modifier = Modifier.padding(top = 8.dp).size(48.dp),
             colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.surface)
         ) {
             Icon(
                 imageVector = Icons.Rounded.Edit,
-                contentDescription = "Edit",
-                modifier = Modifier.size(18.dp)
+                contentDescription = "Edit annual salary",
+                modifier = Modifier.size(24.dp)
             )
         }
     }
