@@ -22,11 +22,31 @@ object SalaryCalculator {
         val logicalDayMs: Long
     )
 
+    private class CachedDay(
+        val resetHour: Int,
+        val zoneId: ZoneId,
+        val logicalDay: LogicalDay
+    ) {
+        fun isValidFor(timeMs: Long, hour: Int, zone: ZoneId): Boolean {
+            if (hour != resetHour || zone != zoneId) return false
+            val start = logicalDay.startOfLogicalDay.toEpochMilli()
+            return timeMs >= start && timeMs < start + logicalDay.logicalDayMs
+        }
+    }
+
+    @Volatile
+    private var cachedDay: CachedDay? = null
+
     fun calculateLogicalDay(
         currentTimeMs: Long,
         resetHour: Int = 0,
         zoneId: ZoneId = ZoneId.systemDefault()
     ): LogicalDay {
+        val cached = cachedDay
+        if (cached != null && cached.isValidFor(currentTimeMs, resetHour, zoneId)) {
+            return cached.logicalDay
+        }
+
         val nowInstant = Instant.ofEpochMilli(currentTimeMs)
         val nowZoned = ZonedDateTime.ofInstant(nowInstant, zoneId)
 
@@ -46,7 +66,9 @@ object SalaryCalculator {
         // Calculate dynamic duration of the logical day
         val logicalDayMs = Duration.between(startOfLogicalDay, endOfLogicalDay).toMillis()
 
-        return LogicalDay(startOfLogicalDay.toInstant(), logicalDayMs)
+        val logicalDay = LogicalDay(startOfLogicalDay.toInstant(), logicalDayMs)
+        cachedDay = CachedDay(resetHour, zoneId, logicalDay)
+        return logicalDay
     }
 
     /**
@@ -71,10 +93,9 @@ object SalaryCalculator {
         
         val logicalDay = calculateLogicalDay(currentTimeMs, resetHour, zoneId)
 
-        val nowInstant = Instant.ofEpochMilli(currentTimeMs)
-        
         // Calculate how much time has elapsed since the start of the logical day
-        val msElapsed = Duration.between(logicalDay.startOfLogicalDay, nowInstant).toMillis()
+        // Avoid instantiating Instant and Duration on every frame
+        val msElapsed = currentTimeMs - logicalDay.startOfLogicalDay.toEpochMilli()
 
         // Clamp elapsed time to 0..logicalDayMs
         val safeMsElapsed = msElapsed.coerceIn(0, logicalDay.logicalDayMs)
