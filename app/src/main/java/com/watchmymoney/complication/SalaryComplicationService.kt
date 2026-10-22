@@ -4,14 +4,13 @@ import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Intent
 import android.graphics.drawable.Icon
-import android.os.Build
 import androidx.wear.protolayout.expression.DynamicBuilders.DynamicFloat
 import androidx.wear.protolayout.expression.DynamicBuilders.DynamicInstant
 import androidx.wear.protolayout.expression.DynamicBuilders.DynamicString
 import androidx.wear.watchface.complications.data.ComplicationData
-import androidx.wear.watchface.complications.data.ComplicationText
 import androidx.wear.watchface.complications.data.ComplicationType
 import androidx.wear.watchface.complications.data.DynamicComplicationText
+import androidx.wear.watchface.complications.data.GoalProgressComplicationData
 import androidx.wear.watchface.complications.data.LongTextComplicationData
 import androidx.wear.watchface.complications.data.MonochromaticImage
 import androidx.wear.watchface.complications.data.PlainComplicationText
@@ -24,6 +23,7 @@ import com.watchmymoney.R
 import com.watchmymoney.data.SalaryRepository
 import com.watchmymoney.data.dataStore
 import com.watchmymoney.logic.SalaryCalculator
+import com.watchmymoney.logic.TimeProvider
 import kotlinx.coroutines.flow.first
 
 class SalaryComplicationService : SuspendingComplicationDataSourceService() {
@@ -33,7 +33,7 @@ class SalaryComplicationService : SuspendingComplicationDataSourceService() {
         val repository = SalaryRepository(applicationContext.dataStore)
         val config = repository.userConfig.first()
         
-        val now = com.watchmymoney.logic.TimeProvider.currentTimeMillis()
+        val now = TimeProvider.currentTimeMillis()
         val logicalDay = SalaryCalculator.calculateLogicalDay(now, config.resetHour)
         val result = SalaryCalculator.calculate(config.annualSalary, now, config.resetHour)
         
@@ -41,7 +41,7 @@ class SalaryComplicationService : SuspendingComplicationDataSourceService() {
         val staticEarnedVal = result.earnedToday.toLong().toString()
         val earnedTextStr = "${config.currencySymbol}$staticEarnedVal"
 
-        // Dynamic Expressions for Wear OS 4+ (API 33+)
+        // Dynamic Expressions for Wear OS 7.0+ (API 37)
         val startOfLogicalDaySec = DynamicInstant.withSecondsPrecision(logicalDay.startOfLogicalDay)
         val platformTimeSec = DynamicInstant.platformTimeWithSecondsPrecision()
         val elapsedSec = startOfLogicalDaySec.durationUntil(platformTimeSec).toIntSeconds()
@@ -66,25 +66,9 @@ class SalaryComplicationService : SuspendingComplicationDataSourceService() {
         val longTextDynamicPrefixStr = applicationContext.getString(R.string.complication_today_dynamic)
         val longTextDynamicStr = DynamicString.constant(longTextDynamicPrefixStr).concat(earnedTextDynamicStr)
 
-        val isApi33OrAbove = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-
-        val earnedText: ComplicationText = if (isApi33OrAbove) {
-            DynamicComplicationText(earnedTextDynamicStr, earnedTextStr)
-        } else {
-            PlainComplicationText.Builder(earnedTextStr).build()
-        }
-
-        val shortContentDesc: ComplicationText = if (isApi33OrAbove) {
-            DynamicComplicationText(shortContentDescStr, shortContentDescFallback)
-        } else {
-            PlainComplicationText.Builder(shortContentDescFallback).build()
-        }
-
-        val longText: ComplicationText = if (isApi33OrAbove) {
-            DynamicComplicationText(longTextDynamicStr, longTextFallback)
-        } else {
-            PlainComplicationText.Builder(longTextFallback).build()
-        }
+        val earnedText = DynamicComplicationText(earnedTextDynamicStr, earnedTextStr)
+        val shortContentDesc = DynamicComplicationText(shortContentDescStr, shortContentDescFallback)
+        val longText = DynamicComplicationText(longTextDynamicStr, longTextFallback)
         
         // Pure white monochrome icon conforming to official guidelines
         val monochromeIcon = MonochromaticImage.Builder(
@@ -122,27 +106,31 @@ class SalaryComplicationService : SuspendingComplicationDataSourceService() {
             
             ComplicationType.RANGED_VALUE -> {
                 val clampedProgress = result.progress.coerceIn(0f, 1f)
-                val builder = if (isApi33OrAbove) {
-                    RangedValueComplicationData.Builder(
-                        dynamicValue = progressDynamic,
-                        fallbackValue = clampedProgress,
-                        min = 0f,
-                        max = 1f,
-                        contentDescription = shortContentDesc
-                    )
-                } else {
-                    RangedValueComplicationData.Builder(
-                        value = clampedProgress,
-                        min = 0f,
-                        max = 1f,
-                        contentDescription = shortContentDesc
-                    )
-                }
-                builder
-                    .setText(earnedText)
-                    .setMonochromaticImage(monochromeIcon)
-                    .setTapAction(tapAction)
-                    .build()
+                RangedValueComplicationData.Builder(
+                    dynamicValue = progressDynamic,
+                    fallbackValue = clampedProgress,
+                    min = 0f,
+                    max = 1f,
+                    contentDescription = shortContentDesc
+                )
+                .setText(earnedText)
+                .setMonochromaticImage(monochromeIcon)
+                .setTapAction(tapAction)
+                .build()
+            }
+
+            ComplicationType.GOAL_PROGRESS -> {
+                val clampedEarned = result.earnedToday.toFloat().coerceAtLeast(0f)
+                GoalProgressComplicationData.Builder(
+                    dynamicValue = earnedDynamicFloat,
+                    fallbackValue = clampedEarned,
+                    targetValue = dailySalary,
+                    contentDescription = shortContentDesc
+                )
+                .setText(earnedText)
+                .setMonochromaticImage(monochromeIcon)
+                .setTapAction(tapAction)
+                .build()
             }
             
             else -> null
@@ -171,6 +159,14 @@ class SalaryComplicationService : SuspendingComplicationDataSourceService() {
                 value = 0.5f,
                 min = 0f,
                 max = 1f,
+                contentDescription = contentDescription
+            ).setText(PlainComplicationText.Builder(earnedText).build())
+             .setMonochromaticImage(monochromeIcon)
+             .build()
+
+            ComplicationType.GOAL_PROGRESS -> GoalProgressComplicationData.Builder(
+                value = 500f,
+                targetValue = 1000f,
                 contentDescription = contentDescription
             ).setText(PlainComplicationText.Builder(earnedText).build())
              .setMonochromaticImage(monochromeIcon)

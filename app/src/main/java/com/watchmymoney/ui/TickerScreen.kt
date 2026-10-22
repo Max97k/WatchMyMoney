@@ -25,12 +25,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.wear.compose.material.Button
-import androidx.wear.compose.material.ButtonDefaults
-import androidx.wear.compose.material.CircularProgressIndicator
-import androidx.wear.compose.material.Icon
-import androidx.wear.compose.material.MaterialTheme
-import androidx.wear.compose.material.Text
+import androidx.wear.compose.material3.CircularProgressIndicator
+import androidx.wear.compose.material3.FilledTonalIconButton
+import androidx.wear.compose.material3.Icon
+import androidx.wear.compose.material3.IconButtonDefaults
+import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material3.ProgressIndicatorDefaults
+import androidx.wear.compose.material3.Text
 import com.watchmymoney.R
 import com.watchmymoney.logic.SalaryCalculator
 import com.watchmymoney.logic.TimeProvider
@@ -78,11 +79,13 @@ fun TickerScreen(
     ) {
         // Full screen circular progress indicator tracking daily earnings progression
         CircularProgressIndicator(
-            progress = dailyProgress,
+            progress = { dailyProgress },
             modifier = Modifier.fillMaxSize().padding(4.dp),
             strokeWidth = 3.5.dp,
-            indicatorColor = MaterialTheme.colors.primary,
-            trackColor = MaterialTheme.colors.surface
+            colors = ProgressIndicatorDefaults.colors(
+                indicatorColor = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceContainer
+            )
         )
 
         Column(
@@ -92,8 +95,8 @@ fun TickerScreen(
         ) {
             Text(
                 text = stringResource(R.string.label_you_earned),
-                style = MaterialTheme.typography.caption1,
-                color = MaterialTheme.colors.secondary
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.secondary
             )
             
             // Split integer and decimal for visual hierarchy
@@ -117,31 +120,31 @@ fun TickerScreen(
             ) {
                 Text(
                     text = "$currencySymbol$integerPart",
-                    style = MaterialTheme.typography.display1.copy(
+                    style = MaterialTheme.typography.numeralLarge.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = 36.sp,
+                        fontSize = 38.sp,
                         fontFeatureSettings = "tnum"
                     ),
-                    color = MaterialTheme.colors.primary,
+                    color = MaterialTheme.colorScheme.primary,
                     maxLines = 1
                 )
                 Text(
                     text = ".$decimalPart",
-                    style = MaterialTheme.typography.title3.copy(
-                        color = MaterialTheme.colors.primaryVariant,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        color = MaterialTheme.colorScheme.tertiary,
                         fontFeatureSettings = "tnum"
                     ),
                     modifier = Modifier.clearAndSetSemantics {}
                 )
             }
             
-            // Edit / Settings button conforming to WO-V2 48x48dp minimum touch target
-            Button(
+            // Edit / Settings button conforming to WO-V2 48x48dp touch target with animated shapes
+            FilledTonalIconButton(
                 onClick = onEditClick,
                 modifier = Modifier
                     .padding(top = 6.dp)
                     .size(48.dp),
-                colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.surface)
+                shapes = IconButtonDefaults.animatedShapes()
             ) {
                 Icon(
                     imageVector = Icons.Rounded.Edit,

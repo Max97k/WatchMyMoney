@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.SystemClock
 import androidx.test.core.app.ApplicationProvider
 import androidx.wear.watchface.complications.data.ComplicationType
+import androidx.wear.watchface.complications.data.GoalProgressComplicationData
 import androidx.wear.watchface.complications.data.LongTextComplicationData
 import androidx.wear.watchface.complications.data.RangedValueComplicationData
 import androidx.wear.watchface.complications.data.ShortTextComplicationData
@@ -139,6 +140,31 @@ class SalaryComplicationServiceTest {
     }
 
     @Test
+    fun testGoalProgressComplicationFormatting() = runTest {
+        // GOAL_PROGRESS complication formatting
+        repository.updateAnnualSalary(365250.0) // Daily salary: 1000.0
+        repository.updateCurrencySymbol("$")
+        repository.updateResetHour(0)
+
+        // 12:00 UTC -> progress = 0.5 -> earnedToday = 500.0
+        val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+            set(2026, Calendar.JUNE, 20, 12, 0, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        SystemClock.setCurrentTimeMillis(calendar.timeInMillis)
+        com.watchmymoney.logic.TimeProvider.currentTimeMillisProvider = { calendar.timeInMillis }
+
+        val request = ComplicationRequest(105, ComplicationType.GOAL_PROGRESS, false)
+        val data = service.onComplicationRequest(request) as? GoalProgressComplicationData
+
+        assertNotNull("GoalProgressComplicationData should not be null", data)
+        assertEquals(500f, data!!.value, 1e-4f)
+        assertEquals(1000f, data.targetValue, 1e-4f)
+        val text = data.text!!.getTextAt(context.resources, java.time.Instant.ofEpochMilli(com.watchmymoney.logic.TimeProvider.currentTimeMillis())).toString()
+        assertEquals("$500", text)
+    }
+
+    @Test
     fun testTapActionIntentTargetAndFlags() = runTest {
         // C-14 equivalent: tap action intent target and flags
         repository.updateAnnualSalary(100000.0)
@@ -174,5 +200,11 @@ class SalaryComplicationServiceTest {
         assertNotNull(rangedPreview)
         assertEquals(0.5f, rangedPreview!!.value, 1e-4f)
         assertEquals("$120", rangedPreview.text!!.getTextAt(context.resources, java.time.Instant.ofEpochMilli(com.watchmymoney.logic.TimeProvider.currentTimeMillis())).toString())
+
+        val goalPreview = service.getPreviewData(ComplicationType.GOAL_PROGRESS) as? GoalProgressComplicationData
+        assertNotNull(goalPreview)
+        assertEquals(500f, goalPreview!!.value, 1e-4f)
+        assertEquals(1000f, goalPreview.targetValue, 1e-4f)
+        assertEquals("$120", goalPreview.text!!.getTextAt(context.resources, java.time.Instant.ofEpochMilli(com.watchmymoney.logic.TimeProvider.currentTimeMillis())).toString())
     }
 }

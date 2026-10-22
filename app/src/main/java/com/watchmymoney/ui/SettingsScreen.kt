@@ -1,6 +1,8 @@
 package com.watchmymoney.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,13 +17,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
-import androidx.wear.compose.material.Chip
-import androidx.wear.compose.material.ChipDefaults
-import androidx.wear.compose.material.Icon
-import androidx.wear.compose.material.ListHeader
-import androidx.wear.compose.material.PositionIndicator
-import androidx.wear.compose.material.Scaffold
-import androidx.wear.compose.material.Text
+import androidx.wear.compose.material3.FilledTonalButton
+import androidx.wear.compose.material3.Icon
+import androidx.wear.compose.material3.ListHeader
+import androidx.wear.compose.material3.MaterialTheme
+import androidx.wear.compose.material3.ScrollIndicator
+import androidx.wear.compose.material3.Text
 import com.watchmymoney.R
 import com.watchmymoney.data.UserConfig
 
@@ -30,14 +31,16 @@ fun SettingsScreen(
     userConfig: UserConfig,
     onEditSalaryClick: () -> Unit,
     onCurrencyChange: (String) -> Unit,
-    onResetHourChange: (Int) -> Unit
+    onResetHourChange: (Int) -> Unit,
+    listState: androidx.wear.compose.foundation.lazy.ScalingLazyListState = rememberScalingLazyListState()
 ) {
-    val listState = rememberScalingLazyListState()
     val currencyOptions = listOf("$", "NT$", "€", "£", "¥", "₩")
     val resetHourOptions = listOf(0, 6, 8, 9, 12, 18, 21)
 
-    Scaffold(
-        positionIndicator = { PositionIndicator(scalingLazyListState = listState) }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
     ) {
         ScalingLazyColumn(
             modifier = Modifier
@@ -55,7 +58,7 @@ fun SettingsScreen(
 
             // 1. 年薪修改
             item {
-                Chip(
+                FilledTonalButton(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = onEditSalaryClick,
                     label = { Text(text = stringResource(R.string.label_salary_prompt)) },
@@ -68,14 +71,13 @@ fun SettingsScreen(
                             imageVector = Icons.Rounded.Edit,
                             contentDescription = stringResource(R.string.action_edit)
                         )
-                    },
-                    colors = ChipDefaults.secondaryChipColors()
+                    }
                 )
             }
 
             // 2. 貨幣切換
             item {
-                Chip(
+                FilledTonalButton(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = {
                         val currentIndex = currencyOptions.indexOf(userConfig.currencySymbol)
@@ -89,14 +91,13 @@ fun SettingsScreen(
                             imageVector = Icons.Rounded.AttachMoney,
                             contentDescription = stringResource(R.string.label_currency)
                         )
-                    },
-                    colors = ChipDefaults.secondaryChipColors()
+                    }
                 )
             }
 
             // 3. 重置時間切換
             item {
-                Chip(
+                FilledTonalButton(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = {
                         val currentIndex = resetHourOptions.indexOf(userConfig.resetHour)
@@ -113,10 +114,14 @@ fun SettingsScreen(
                             imageVector = Icons.Rounded.Schedule,
                             contentDescription = stringResource(R.string.label_reset_hour)
                         )
-                    },
-                    colors = ChipDefaults.secondaryChipColors()
+                    }
                 )
             }
         }
+
+        ScrollIndicator(
+            state = listState,
+            modifier = Modifier.align(Alignment.CenterEnd)
+        )
     }
 }
