@@ -21,10 +21,17 @@ jobs:
       - name: Install Android Platform 37
         run: |
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-37.0" || true
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-37" || true
           if [ -d "$ANDROID_HOME/platforms/android-37.0" ] && [ ! -d "$ANDROID_HOME/platforms/android-37" ]; then
-            echo "Linking android-37.0 to android-37..."
+            echo "Copying android-37.0 to android-37 and adjusting package.xml/source.properties..."
             cp -r "$ANDROID_HOME/platforms/android-37.0" "$ANDROID_HOME/platforms/android-37"
+            if [ -f "$ANDROID_HOME/platforms/android-37/package.xml" ]; then
+              sed -i 's/path="platforms;android-37.0"/path="platforms;android-37"/g' "$ANDROID_HOME/platforms/android-37/package.xml"
+              sed -i 's/<api-level>37.0<\/api-level>/<api-level>37<\/api-level>/g' "$ANDROID_HOME/platforms/android-37/package.xml"
+            fi
+            if [ -f "$ANDROID_HOME/platforms/android-37/source.properties" ]; then
+              sed -i 's/Platform.Version=17.0/Platform.Version=17/g' "$ANDROID_HOME/platforms/android-37/source.properties"
+              sed -i 's/AndroidVersion.ApiLevel=37.0/AndroidVersion.ApiLevel=37/g' "$ANDROID_HOME/platforms/android-37/source.properties"
+            fi
           fi
           ls -la "$ANDROID_HOME/platforms"
 
