@@ -12,8 +12,8 @@ android {
         applicationId = "com.watchmymoney"
         minSdk = 30 // Wear OS 3.0+
         targetSdk = 34 // Android 14 (Wear OS 5 target)
-        versionCode = 3
-        versionName = "1.1"
+        versionCode = 4
+        versionName = "1.2"
         vectorDrawables {
             useSupportLibrary = true
         }
@@ -33,11 +33,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
@@ -52,29 +52,40 @@ android {
             isIncludeAndroidResources = true
         }
     }
+    lint {
+        abortOnError = true
+        textReport = true
+        xmlReport = true
+        htmlReport = true
+    }
 }
 
 dependencies {
     implementation(libs.androidx.core.ktx)
-    implementation(libs.play.services.wearable)
-    implementation(libs.androidx.wear)
+    implementation(libs.androidx.core.splashscreen)
     
-    // Compose
+    // Compose for Wear OS
     implementation(platform("androidx.compose:compose-bom:2024.06.00"))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.wear.compose.material)
     implementation(libs.androidx.wear.compose.foundation)
+    implementation(libs.androidx.wear.compose.navigation)
+    
+    // Lifecycle & ViewModel Compose
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
     
     // Complications
     implementation(libs.androidx.watchface.complications.data.source.ktx)
     
-    // DataStore
+    // DataStore Preferences
     implementation(libs.androidx.datastore.preferences)
     
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.wear.input)
+    // Material Icons
     implementation(libs.androidx.compose.material.icons.extended)
 
+    // Unit & Robolectric Testing
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)

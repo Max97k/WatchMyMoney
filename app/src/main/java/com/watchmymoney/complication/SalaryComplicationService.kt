@@ -1,15 +1,19 @@
 package com.watchmymoney.complication
 
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Intent
-import android.os.SystemClock
+import android.graphics.drawable.Icon
+import android.os.Build
 import androidx.wear.protolayout.expression.DynamicBuilders.DynamicFloat
 import androidx.wear.protolayout.expression.DynamicBuilders.DynamicInstant
 import androidx.wear.protolayout.expression.DynamicBuilders.DynamicString
 import androidx.wear.watchface.complications.data.ComplicationData
+import androidx.wear.watchface.complications.data.ComplicationText
 import androidx.wear.watchface.complications.data.ComplicationType
 import androidx.wear.watchface.complications.data.DynamicComplicationText
 import androidx.wear.watchface.complications.data.LongTextComplicationData
+import androidx.wear.watchface.complications.data.MonochromaticImage
 import androidx.wear.watchface.complications.data.PlainComplicationText
 import androidx.wear.watchface.complications.data.RangedValueComplicationData
 import androidx.wear.watchface.complications.data.ShortTextComplicationData
@@ -24,6 +28,7 @@ import kotlinx.coroutines.flow.first
 
 class SalaryComplicationService : SuspendingComplicationDataSourceService() {
 
+    @SuppressLint("WearRecents")
     override suspend fun onComplicationRequest(request: ComplicationRequest): ComplicationData? {
         val repository = SalaryRepository(applicationContext.dataStore)
         val config = repository.userConfig.first()
@@ -32,16 +37,16 @@ class SalaryComplicationService : SuspendingComplicationDataSourceService() {
         val logicalDay = SalaryCalculator.calculateLogicalDay(now, config.resetHour)
         val result = SalaryCalculator.calculate(config.annualSalary, now, config.resetHour)
         
-        // Use optimized string building (no String.format) for static fallback
+        // Static fallback values
         val staticEarnedVal = result.earnedToday.toLong().toString()
         val earnedTextStr = "${config.currencySymbol}$staticEarnedVal"
 
-        // Dynamic Expressions
+        // Dynamic Expressions for Wear OS 4+ (API 33+)
         val startOfLogicalDaySec = DynamicInstant.withSecondsPrecision(logicalDay.startOfLogicalDay)
         val platformTimeSec = DynamicInstant.platformTimeWithSecondsPrecision()
         val elapsedSec = startOfLogicalDaySec.durationUntil(platformTimeSec).toIntSeconds()
 
-        val logicalDaySec = logicalDay.logicalDayMs / 1000.0f
+        val logicalDaySec = (logicalDay.logicalDayMs / 1000.0f).coerceAtLeast(1.0f)
         val dailySalary = (config.annualSalary / SalaryCalculator.DAYS_PER_YEAR).toFloat()
 
         val progressDynamic = elapsedSec.asFloat().times(DynamicFloat.constant(1.0f / logicalDaySec))
@@ -53,18 +58,39 @@ class SalaryComplicationService : SuspendingComplicationDataSourceService() {
             .build()
 
         val earnedTextDynamicStr = DynamicString.constant(config.currencySymbol).concat(earnedDynamicFloat.format(floatFormatter))
-        val earnedTextDynamic = DynamicComplicationText(earnedTextDynamicStr, earnedTextStr)
-
         val shortContentDescFallback = applicationContext.getString(R.string.complication_earned_today, earnedTextStr)
         val shortContentDescDynamicStr = applicationContext.getString(R.string.complication_earned_today_dynamic)
         val shortContentDescStr = DynamicString.constant(shortContentDescDynamicStr).concat(earnedTextDynamicStr)
-        val shortContentDesc = DynamicComplicationText(shortContentDescStr, shortContentDescFallback)
 
         val longTextFallback = applicationContext.getString(R.string.complication_today, earnedTextStr)
         val longTextDynamicPrefixStr = applicationContext.getString(R.string.complication_today_dynamic)
         val longTextDynamicStr = DynamicString.constant(longTextDynamicPrefixStr).concat(earnedTextDynamicStr)
-        val longTextDynamic = DynamicComplicationText(longTextDynamicStr, longTextFallback)
+
+        val isApi33OrAbove = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+
+        val earnedText: ComplicationText = if (isApi33OrAbove) {
+            DynamicComplicationText(earnedTextDynamicStr, earnedTextStr)
+        } else {
+            PlainComplicationText.Builder(earnedTextStr).build()
+        }
+
+        val shortContentDesc: ComplicationText = if (isApi33OrAbove) {
+            DynamicComplicationText(shortContentDescStr, shortContentDescFallback)
+        } else {
+            PlainComplicationText.Builder(shortContentDescFallback).build()
+        }
+
+        val longText: ComplicationText = if (isApi33OrAbove) {
+            DynamicComplicationText(longTextDynamicStr, longTextFallback)
+        } else {
+            PlainComplicationText.Builder(longTextFallback).build()
+        }
         
+        // Pure white monochrome icon conforming to official guidelines
+        val monochromeIcon = MonochromaticImage.Builder(
+            Icon.createWithResource(this, R.drawable.ic_complication)
+        ).build()
+
         // Create tap action to open the app
         val tapIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
@@ -76,33 +102,47 @@ class SalaryComplicationService : SuspendingComplicationDataSourceService() {
         return when (request.complicationType) {
             ComplicationType.SHORT_TEXT -> {
                 ShortTextComplicationData.Builder(
-                    text = earnedTextDynamic,
+                    text = earnedText,
                     contentDescription = shortContentDesc
                 )
+                .setMonochromaticImage(monochromeIcon)
                 .setTapAction(tapAction)
                 .build()
             }
             
             ComplicationType.LONG_TEXT -> {
                 LongTextComplicationData.Builder(
-                    text = longTextDynamic,
+                    text = longText,
                     contentDescription = shortContentDesc
                 )
+                .setMonochromaticImage(monochromeIcon)
                 .setTapAction(tapAction)
                 .build()
             }
             
             ComplicationType.RANGED_VALUE -> {
-                RangedValueComplicationData.Builder(
-                    dynamicValue = progressDynamic,
-                    fallbackValue = result.progress.coerceIn(0f, 1f),
-                    min = 0f,
-                    max = 1f,
-                    contentDescription = shortContentDesc
-                )
-                .setText(earnedTextDynamic)
-                .setTapAction(tapAction)
-                .build()
+                val clampedProgress = result.progress.coerceIn(0f, 1f)
+                val builder = if (isApi33OrAbove) {
+                    RangedValueComplicationData.Builder(
+                        dynamicValue = progressDynamic,
+                        fallbackValue = clampedProgress,
+                        min = 0f,
+                        max = 1f,
+                        contentDescription = shortContentDesc
+                    )
+                } else {
+                    RangedValueComplicationData.Builder(
+                        value = clampedProgress,
+                        min = 0f,
+                        max = 1f,
+                        contentDescription = shortContentDesc
+                    )
+                }
+                builder
+                    .setText(earnedText)
+                    .setMonochromaticImage(monochromeIcon)
+                    .setTapAction(tapAction)
+                    .build()
             }
             
             else -> null
@@ -112,24 +152,29 @@ class SalaryComplicationService : SuspendingComplicationDataSourceService() {
     override fun getPreviewData(type: ComplicationType): ComplicationData? {
         val earnedText = "$120"
         val contentDescription = PlainComplicationText.Builder(applicationContext.getString(R.string.complication_preview)).build()
-        
+        val monochromeIcon = MonochromaticImage.Builder(
+            Icon.createWithResource(this, R.drawable.ic_complication)
+        ).build()
+
         return when (type) {
             ComplicationType.SHORT_TEXT -> ShortTextComplicationData.Builder(
                 text = PlainComplicationText.Builder(earnedText).build(),
                 contentDescription = contentDescription
-            ).build()
+            ).setMonochromaticImage(monochromeIcon).build()
             
             ComplicationType.LONG_TEXT -> LongTextComplicationData.Builder(
                 text = PlainComplicationText.Builder(applicationContext.getString(R.string.complication_today, earnedText)).build(),
                 contentDescription = contentDescription
-            ).build()
+            ).setMonochromaticImage(monochromeIcon).build()
             
             ComplicationType.RANGED_VALUE -> RangedValueComplicationData.Builder(
                 value = 0.5f,
                 min = 0f,
                 max = 1f,
                 contentDescription = contentDescription
-            ).setText(PlainComplicationText.Builder(earnedText).build()).build()
+            ).setText(PlainComplicationText.Builder(earnedText).build())
+             .setMonochromaticImage(monochromeIcon)
+             .build()
             
             else -> null
         }

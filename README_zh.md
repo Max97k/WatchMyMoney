@@ -14,7 +14,7 @@
 [![Language](https://img.shields.io/badge/Language-Kotlin-7F52FF?style=flat-square&logo=kotlin)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen?style=flat-square)](#)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue?style=flat-square)](#)
+[![Version](https://img.shields.io/badge/version-1.2.0-blue?style=flat-square)](#)
 
 </div>
 

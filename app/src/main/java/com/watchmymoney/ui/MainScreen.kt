@@ -1,36 +1,26 @@
 package com.watchmymoney.ui
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.wear.compose.material.CircularProgressIndicator
-import androidx.wear.watchface.complications.datasource.ComplicationDataSourceUpdateRequester
-import android.content.ComponentName
-import com.watchmymoney.complication.SalaryComplicationService
-import com.watchmymoney.data.SalaryRepository
-import com.watchmymoney.data.dataStore
-import kotlinx.coroutines.launch
+import androidx.wear.compose.material.Scaffold
+import androidx.wear.compose.material.TimeText
+import androidx.wear.compose.navigation.SwipeDismissableNavHost
+import androidx.wear.compose.navigation.composable
+import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 
 @Composable
-fun MainScreen() {
-    val context = LocalContext.current
-    val repository = SalaryRepository(context.dataStore)
-    val userConfig by repository.userConfig.collectAsState(initial = null)
-    val scope = rememberCoroutineScope()
-    
-    val complicationRequester = remember {
-        ComplicationDataSourceUpdateRequester.create(
-            context,
-            ComponentName(context, SalaryComplicationService::class.java)
-        )
-    }
+fun MainScreen(
+    viewModel: SalaryViewModel = viewModel()
+) {
+    val userConfig by viewModel.userConfig.collectAsStateWithLifecycle()
+    val navController = rememberSwipeDismissableNavController()
 
     if (userConfig == null) {
         Box(
@@ -43,28 +33,56 @@ fun MainScreen() {
     }
 
     val config = userConfig!!
+    val startDestination = if (config.annualSalary <= 0.0) "onboarding" else "ticker"
 
-    if (config.annualSalary <= 0) {
-        OnboardingScreen(
-            onSalarySet = { newSalary ->
-                scope.launch {
-                    repository.updateAnnualSalary(newSalary)
-                    complicationRequester.requestUpdateAll()
-                }
+    Scaffold(
+        timeText = { TimeText() }
+    ) {
+        SwipeDismissableNavHost(
+            navController = navController,
+            startDestination = startDestination
+        ) {
+            composable("ticker") {
+                TickerScreen(
+                    annualSalary = config.annualSalary,
+                    currencySymbol = config.currencySymbol,
+                    resetHour = config.resetHour,
+                    onEditClick = {
+                        navController.navigate("settings")
+                    }
+                )
             }
-        )
-    } else {
-        TickerScreen(
-            annualSalary = config.annualSalary,
-            currencySymbol = config.currencySymbol,
-            resetHour = config.resetHour,
-            onEditClick = {
-                scope.launch {
-                    // Resetting salary to 0 will trigger the OnboardingScreen
-                    repository.updateAnnualSalary(0.0)
-                    complicationRequester.requestUpdateAll()
-                }
+
+            composable("settings") {
+                SettingsScreen(
+                    userConfig = config,
+                    onEditSalaryClick = {
+                        navController.navigate("onboarding")
+                    },
+                    onCurrencyChange = { newSymbol ->
+                        viewModel.updateCurrencySymbol(newSymbol)
+                    },
+                    onResetHourChange = { newHour ->
+                        viewModel.updateResetHour(newHour)
+                    }
+                )
             }
-        )
+
+            composable("onboarding") {
+                OnboardingScreen(
+                    initialSalary = config.annualSalary,
+                    currencySymbol = config.currencySymbol,
+                    onSalarySet = { newSalary ->
+                        viewModel.updateAnnualSalary(newSalary)
+                        navController.navigate("ticker") {
+                            popUpTo("onboarding") { inclusive = true }
+                        }
+                    },
+                    onCancel = if (config.annualSalary > 0.0) {
+                        { navController.popBackStack() }
+                    } else null
+                )
+            }
+        }
     }
 }

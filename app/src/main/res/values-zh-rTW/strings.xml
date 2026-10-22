@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">WatchMyMoney</string>
+    <string name="complication_label">薪資累計</string>
+    <string name="complication_earned_today">今日已賺：%1$s</string>
+    <string name="complication_today">今日：%1$s</string>
+    <string name="complication_preview">預覽</string>
+    <string name="complication_earned_today_dynamic">今日已賺：</string>
+    <string name="complication_today_dynamic">今日：</string>
+
+    <!-- UI Strings -->
+    <string name="label_you_earned">今日已賺得</string>
+    <string name="label_salary_prompt">年薪設定</string>
+    <string name="label_currency">幣別</string>
+    <string name="label_reset_hour">每日結算重置時間</string>
+    <string name="label_settings">設定</string>
+    <string name="action_confirm">確認</string>
+    <string name="action_delete">刪除</string>
+    <string name="action_edit">編輯</string>
+    <string name="action_cancel">取消</string>
+    <string name="format_hour_display">%1$02d:00</string>
+</resources>
