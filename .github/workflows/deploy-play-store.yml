@@ -20,11 +20,13 @@ jobs:
 
       - name: Install Android Platform 37
         run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-37.0" || true
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "platforms;android-37" || true
-          if [ ! -d "$ANDROID_HOME/platforms/android-37" ]; then
-            echo "Installing platforms;android-37 using sdkmanager fallback..."
-            yes | sdkmanager --install "platforms;android-37" || true
+          if [ -d "$ANDROID_HOME/platforms/android-37.0" ] && [ ! -d "$ANDROID_HOME/platforms/android-37" ]; then
+            echo "Linking android-37.0 to android-37..."
+            cp -r "$ANDROID_HOME/platforms/android-37.0" "$ANDROID_HOME/platforms/android-37"
           fi
+          ls -la "$ANDROID_HOME/platforms"
 
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
