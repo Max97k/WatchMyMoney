@@ -51,10 +51,17 @@ jobs:
           keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
           keyPassword: ${{ secrets.KEY_PASSWORD }}
 
+      - name: Upload Signed AAB Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: ${{ steps.sign_app.outputs.signedReleaseFile }}
+          if-no-files-found: warn
+
       - name: Upload to Google Play
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.watchmymoney
           releaseFiles: ${{ steps.sign_app.outputs.signedReleaseFile }}
-          track: internal
+          track: wear:internal

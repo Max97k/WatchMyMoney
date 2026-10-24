@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -20,10 +21,10 @@ import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 fun MainScreen(
     viewModel: SalaryViewModel = viewModel()
 ) {
-    val userConfig by viewModel.userConfig.collectAsStateWithLifecycle()
+    val userConfigState by viewModel.userConfig.collectAsStateWithLifecycle()
     val navController = rememberSwipeDismissableNavController()
 
-    if (userConfig == null) {
+    if (userConfigState == null) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -33,8 +34,9 @@ fun MainScreen(
         return
     }
 
-    val config = userConfig!!
-    val startDestination = if (config.annualSalary <= 0.0) "onboarding" else "ticker"
+    val startDestination = remember {
+        if ((userConfigState?.annualSalary ?: 0.0) <= 0.0) "onboarding" else "ticker"
+    }
 
     AppScaffold {
         SwipeDismissableNavHost(
@@ -42,47 +44,54 @@ fun MainScreen(
             startDestination = startDestination
         ) {
             composable("ticker") {
-                ScreenScaffold {
-                    TickerScreen(
-                        annualSalary = config.annualSalary,
-                        currencySymbol = config.currencySymbol,
-                        resetHour = config.resetHour,
-                        onEditClick = {
-                            navController.navigate("settings")
-                        }
-                    )
+                val currentConfig by viewModel.userConfig.collectAsStateWithLifecycle()
+                currentConfig?.let { cfg ->
+                    ScreenScaffold {
+                        TickerScreen(
+                            annualSalary = cfg.annualSalary,
+                            currencySymbol = cfg.currencySymbol,
+                            resetHour = cfg.resetHour,
+                            onEditClick = {
+                                navController.navigate("settings")
+                            }
+                        )
+                    }
                 }
             }
 
             composable("settings") {
-                val listState = androidx.wear.compose.foundation.lazy.rememberScalingLazyListState()
-                ScreenScaffold(
-                    scrollState = listState
-                ) {
-                    SettingsScreen(
-                        userConfig = config,
-                        listState = listState,
-                        onEditSalaryClick = {
-                            navController.navigate("onboarding")
-                        },
-                        onCurrencyChange = { newSymbol ->
-                            viewModel.updateCurrencySymbol(newSymbol)
-                        },
-                        onResetHourChange = { newHour ->
-                            viewModel.updateResetHour(newHour)
-                        }
-                    )
+                val currentConfig by viewModel.userConfig.collectAsStateWithLifecycle()
+                currentConfig?.let { cfg ->
+                    val listState = androidx.wear.compose.foundation.lazy.rememberScalingLazyListState()
+                    ScreenScaffold(
+                        scrollState = listState
+                    ) {
+                        SettingsScreen(
+                            userConfig = cfg,
+                            listState = listState,
+                            onEditSalaryClick = {
+                                navController.navigate("onboarding")
+                            },
+                            onCurrencyChange = { newSymbol ->
+                                viewModel.updateCurrencySymbol(newSymbol)
+                            },
+                            onResetHourChange = { newHour ->
+                                viewModel.updateResetHour(newHour)
+                            }
+                        )
+                    }
                 }
             }
 
             composable("onboarding") {
+                val currentConfig by viewModel.userConfig.collectAsStateWithLifecycle()
                 val listState = androidx.wear.compose.foundation.lazy.rememberScalingLazyListState()
                 ScreenScaffold(
                     scrollState = listState
                 ) {
                     OnboardingScreen(
-                        initialSalary = config.annualSalary,
-                        currencySymbol = config.currencySymbol,
+                        initialSalary = currentConfig?.annualSalary ?: 0.0,
+                        currencySymbol = currentConfig?.currencySymbol ?: "$",
                         listState = listState,
                         onSalarySet = { newSalary ->
                             viewModel.updateAnnualSalary(newSalary)
@@ -90,7 +99,7 @@ fun MainScreen(
                                 popUpTo("onboarding") { inclusive = true }
                             }
                         },
-                        onCancel = if (config.annualSalary > 0.0) {
+                        onCancel = if ((currentConfig?.annualSalary ?: 0.0) > 0.0) {
                             { navController.popBackStack() }
                         } else null
                     )
